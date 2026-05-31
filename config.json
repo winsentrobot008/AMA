@@ -1,0 +1,7 @@
+{
+    "github_token": "YOUR_GITHUB_TOKEN_HERE",
+    "repo": "winsentrobot008/DevDirector-Tasks",
+    "label": "cline",
+    "poll_interval_seconds": 20,
+    "tasks_dir": "tasks"
+}

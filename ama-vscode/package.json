@@ -1,0 +1,125 @@
+{
+  "name": "ama-vscode",
+  "displayName": "AMA",
+  "description": "AI Messenger Agent for Maneki-AI",
+  "version": "0.1.0",
+  "publisher": "winsentrobot008",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/winsentrobot008/AMA.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "github",
+    "issue",
+    "task",
+    "messenger",
+    "agent",
+    "ama"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ama",
+          "title": "AMA",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ama": [
+        {
+          "type": "tree",
+          "id": "ama.tasksView",
+          "name": "任务列表"
+        },
+        {
+          "type": "webview",
+          "id": "ama.logView",
+          "name": "日志"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ama.start",
+        "title": "AMA: 启动轮询"
+      },
+      {
+        "command": "ama.stop",
+        "title": "AMA: 停止轮询"
+      },
+      {
+        "command": "ama.refresh",
+        "title": "AMA: 刷新任务列表"
+      },
+      {
+        "command": "ama.openLog",
+        "title": "AMA: 打开日志面板"
+      },
+      {
+        "command": "ama.openTaskFile",
+        "title": "AMA: 打开任务文件"
+      }
+    ],
+    "configuration": {
+      "title": "AMA",
+      "properties": {
+        "ama.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub Personal Access Token（需要 repo 权限）",
+          "scope": "application"
+        },
+        "ama.repo": {
+          "type": "string",
+          "default": "winsentrobot008/DevDirector-Tasks",
+          "description": "要监听的 GitHub 仓库，格式：owner/repo",
+          "scope": "application"
+        },
+        "ama.label": {
+          "type": "string",
+          "default": "cline",
+          "description": "要监听的 Issue 标签",
+          "scope": "application"
+        },
+        "ama.pollIntervalSeconds": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "description": "轮询间隔（秒）",
+          "scope": "application"
+        },
+        "ama.tasksDir": {
+          "type": "string",
+          "default": "tasks",
+          "description": "任务文件存放目录（相对于工作区根目录）",
+          "scope": "application"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}
