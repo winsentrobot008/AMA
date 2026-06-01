@@ -2,7 +2,7 @@
   "name": "ama-vscode",
   "displayName": "AMA",
   "description": "AI Messenger Agent for Maneki-AI",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "winsentrobot008",
   "license": "MIT",
   "repository": {
@@ -21,11 +21,21 @@
     "task",
     "messenger",
     "agent",
-    "ama"
+    "ama",
+    "cline",
+    "mcp",
+    "llm",
+    "deepseek"
   ],
   "icon": "media/icon.png",
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCommand:ama.start",
+    "onCommand:ama.generateTaskChain",
+    "onCommand:ama.executeTaskChain",
+    "onView:amaTasksView",
+    "onView:amaLogsView",
+    "onView:amaTaskChainView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -42,17 +52,37 @@
       "ama": [
         {
           "type": "tree",
-          "id": "ama.tasksView",
+          "id": "amaTasksView",
           "name": "任务列表"
         },
         {
           "type": "webview",
-          "id": "ama.logView",
+          "id": "amaLogsView",
           "name": "日志"
+        },
+        {
+          "type": "webview",
+          "id": "amaTaskChainView",
+          "name": "任务链"
         }
       ]
     },
     "commands": [
+      {
+        "command": "ama.connectToCline",
+        "title": "Connect to CLINE (GitHub)",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "ama.connectToClineMCP",
+        "title": "Connect to CLINE MCP",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "ama.disconnectFromClineMCP",
+        "title": "Disconnect from CLINE MCP",
+        "icon": "$(plug)"
+      },
       {
         "command": "ama.start",
         "title": "AMA: 启动轮询"
@@ -63,7 +93,8 @@
       },
       {
         "command": "ama.refresh",
-        "title": "AMA: 刷新任务列表"
+        "title": "AMA: 刷新任务列表",
+        "icon": "$(refresh)"
       },
       {
         "command": "ama.openLog",
@@ -72,8 +103,107 @@
       {
         "command": "ama.openTaskFile",
         "title": "AMA: 打开任务文件"
+      },
+      {
+        "command": "ama.runTask",
+        "title": "AMA: 执行任务"
+      },
+      {
+        "command": "ama.clearLogs",
+        "title": "AMA: 清空日志"
+      },
+      {
+        "command": "ama.askDeepSeek",
+        "title": "AMA: 询问 DeepSeek",
+        "icon": "$(hubot)"
+      },
+      {
+        "command": "ama.generateTaskChain",
+        "title": "AMA: 生成任务链 (LLM)",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "ama.executeTaskChain",
+        "title": "AMA: 执行任务链",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ama.abortTaskChain",
+        "title": "AMA: 中止任务链",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "ama.autoOrchestrate",
+        "title": "AMA: 自动调度 (LLM)",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "ama.openTaskChainInput",
+        "title": "AMA: 打开任务链输入面板",
+        "icon": "$(edit)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ama.connectToCline",
+          "when": "view == amaTasksView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ama.connectToClineMCP",
+          "when": "view == amaTasksView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ama.start",
+          "when": "view == amaTasksView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ama.stop",
+          "when": "view == amaTasksView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ama.askDeepSeek",
+          "when": "view == amaTasksView",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ama.generateTaskChain",
+          "when": "view == amaTasksView",
+          "group": "navigation@6"
+        },
+        {
+          "command": "ama.executeTaskChain",
+          "when": "view == amaTasksView",
+          "group": "navigation@7"
+        },
+        {
+          "command": "ama.autoOrchestrate",
+          "when": "view == amaTasksView",
+          "group": "navigation@8"
+        },
+        {
+          "command": "ama.refresh",
+          "when": "view == amaTasksView",
+          "group": "navigation@9"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ama.openTaskFile",
+          "when": "view == amaTasksView && viewItem != null",
+          "group": "inline"
+        },
+        {
+          "command": "ama.runTask",
+          "when": "view == amaTasksView && viewItem != null",
+          "group": "inline"
+        }
+      ]
+    },
     "configuration": {
       "title": "AMA",
       "properties": {
