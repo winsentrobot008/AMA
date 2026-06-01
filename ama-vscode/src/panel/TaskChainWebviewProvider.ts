@@ -19,6 +19,8 @@ export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
+        private readonly _taskChainExecutor: TaskChainExecutor,
+        private readonly _clineClient: ClineClient,
     ) {}
 
     resolveWebviewView(
@@ -61,10 +63,9 @@ export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
             })
         );
 
-        // Listen for execution events
-        const executor = TaskChainExecutor.getInstance();
+        // Listen for execution events from the injected executor
         this._disposables.push(
-            executor.onExecutionEvent((event) => {
+            this._taskChainExecutor.onExecutionEvent((event) => {
                 this.handleExecutionEvent(event);
             })
         );
@@ -243,10 +244,10 @@ export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
      */
     private startClineStatusPolling(): void {
         this.stopClineStatusPolling();
-        // Poll every 10 seconds
+        // Poll every 2 seconds for real-time status updates
         this._clineStatusTimer = setInterval(async () => {
             await this.fetchAndPushClineStatus();
-        }, 10000);
+        }, 2000);
         // Also fetch immediately
         this.fetchAndPushClineStatus();
     }
