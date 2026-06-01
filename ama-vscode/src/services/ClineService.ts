@@ -3,6 +3,7 @@ import * as https from 'https';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ConfigManager } from '../config/ConfigManager';
+import { appendClineLog, updateAmaState } from './FileLogger';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'success';
 
@@ -148,27 +149,47 @@ export class ClineService {
                 this.addLog('info', `📦 仓库描述: ${response.body?.description || '无描述'}`);
                 this._isConnected = true;
                 this._onConnectionChanged.fire(true);
+
+                appendClineLog({ source: 'ClineService', event: 'connected', repo: config.repo });
+                updateAmaState({ clineConnected: true });
+
                 return true;
             } else if (response.statusCode === 401) {
                 this.addLog('error', '❌ GitHub Token 无效或已过期，请检查配置');
                 this._isConnected = false;
                 this._onConnectionChanged.fire(false);
+
+                appendClineLog({ source: 'ClineService', event: 'connect_failed', reason: 'invalid token' });
+                updateAmaState({ clineConnected: false, lastError: 'GitHub Token 无效或已过期' });
+
                 return false;
             } else if (response.statusCode === 404) {
                 this.addLog('error', `❌ 仓库 ${config.repo} 不存在或无权访问`);
                 this._isConnected = false;
                 this._onConnectionChanged.fire(false);
+
+                appendClineLog({ source: 'ClineService', event: 'connect_failed', reason: 'repo not found', repo: config.repo });
+                updateAmaState({ clineConnected: false, lastError: `仓库 ${config.repo} 不存在` });
+
                 return false;
             } else {
                 this.addLog('error', `❌ 连接失败 (HTTP ${response.statusCode}): ${response.statusMessage}`);
                 this._isConnected = false;
                 this._onConnectionChanged.fire(false);
+
+                appendClineLog({ source: 'ClineService', event: 'connect_failed', httpStatus: response.statusCode });
+                updateAmaState({ clineConnected: false, lastError: `HTTP ${response.statusCode}` });
+
                 return false;
             }
         } catch (err: any) {
             this.addLog('error', `❌ 连接异常: ${err.message || '未知错误'}`);
             this._isConnected = false;
             this._onConnectionChanged.fire(false);
+
+            appendClineLog({ source: 'ClineService', event: 'connect_error', error: err.message });
+            updateAmaState({ clineConnected: false, lastError: err.message });
+
             return false;
         }
     }
@@ -194,6 +215,9 @@ export class ClineService {
         this._isPolling = true;
         this._onPollingChanged.fire(true);
         this.addLog('success', '🔄 轮询已启动');
+
+        appendClineLog({ source: 'ClineService', event: 'polling_started' });
+        updateAmaState({ polling: true });
 
         // Run the first poll immediately
         this.pollOnce();
@@ -222,6 +246,9 @@ export class ClineService {
         this._isPolling = false;
         this._onPollingChanged.fire(false);
         this.addLog('info', '⏹️ 轮询已停止');
+
+        appendClineLog({ source: 'ClineService', event: 'polling_stopped' });
+        updateAmaState({ polling: false });
     }
 
     /**
@@ -259,11 +286,17 @@ export class ClineService {
             if (newTaskCount > 0) {
                 this.savePollingState(state);
                 this.addLog('success', `✅ 本次轮询发现 ${newTaskCount} 个新任务`);
+
+                appendClineLog({ source: 'ClineService', event: 'poll_found_tasks', count: newTaskCount });
+
                 // Notify listeners that new tasks were discovered
                 this._onTaskDiscovered.fire();
             }
         } catch (err: any) {
             this.addLog('error', `❌ 轮询时发生异常: ${err.message || '未知错误'}`);
+
+            appendClineLog({ source: 'ClineService', event: 'poll_error', error: err.message });
+            updateAmaState({ lastError: err.message });
         } finally {
             this._isPollingInProgress = false;
         }
@@ -450,13 +483,24 @@ ${body}
 
             if (response.statusCode === 201) {
                 this.addLog('success', `✅ 任务已提交: ${taskName} (Issue #${response.body?.number})`);
+
+                appendClineLog({ source: 'ClineService', event: 'task_submitted', taskName, issueNumber: response.body?.number });
+
                 return true;
             } else {
                 this.addLog('error', `❌ 提交任务失败 (HTTP ${response.statusCode}): ${response.rawBody || response.statusMessage}`);
+
+                appendClineLog({ source: 'ClineService', event: 'task_submit_failed', taskName, httpStatus: response.statusCode });
+                updateAmaState({ lastError: `提交任务失败: ${taskName}` });
+
                 return false;
             }
         } catch (err: any) {
             this.addLog('error', `❌ 执行任务异常: ${err.message || '未知错误'}`);
+
+            appendClineLog({ source: 'ClineService', event: 'task_submit_error', taskName, error: err.message });
+            updateAmaState({ lastError: err.message });
+
             return false;
         }
     }

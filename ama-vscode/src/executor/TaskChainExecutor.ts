@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { TaskChain, TaskChainStep, StepExecutionState, TaskChainExecutionState, TaskChainExecutionConfig } from '../types/TaskChain';
 import { ClineClient } from '../cline/ClineClient';
 import { ClineService } from '../services/ClineService';
+import { appendClineLog, updateAmaState } from '../services/FileLogger';
 
 /**
  * Default execution configuration.
@@ -101,6 +102,9 @@ export class TaskChainExecutor {
 
         service.addLog('success', `🚀 [Executor] 开始执行任务链，共 ${chain.length} 个步骤`);
 
+        appendClineLog({ source: 'TaskChainExecutor', event: 'execution_started', totalSteps: chain.length, chain: chain.map(s => s.id) });
+        updateAmaState({ currentTaskChain: chain, currentStep: chain[0]?.id || '' });
+
         // Execute each step sequentially
         for (let i = 0; i < chain.length; i++) {
             if (this._abortRequested) {
@@ -123,6 +127,9 @@ export class TaskChainExecutor {
 
             service.addLog('info', `▶️ [Executor] 步骤 ${i + 1}/${chain.length}: ${step.description || step.action} (${step.id})`);
 
+            appendClineLog({ source: 'TaskChainExecutor', event: 'step_started', stepIndex: i, stepId: step.id, description: step.description || step.action });
+            updateAmaState({ currentStep: step.id });
+
             // Execute with retry support
             let success = false;
             let lastError: string | undefined;
@@ -140,6 +147,8 @@ export class TaskChainExecutor {
                         stepIndex: i,
                         message: `重试步骤 ${step.id} (第 ${attempt + 1} 次)`,
                     });
+
+                    appendClineLog({ source: 'TaskChainExecutor', event: 'step_retrying', stepIndex: i, stepId: step.id, attempt: attempt + 1 });
 
                     // Wait before retry
                     await this.delay(cfg.retryDelayMs);
@@ -161,12 +170,14 @@ export class TaskChainExecutor {
 
                         service.addLog('success', `✅ [Executor] 步骤 ${step.id} 完成`);
 
-                        this._onExecutionEvent.fire({
-                            state: this._currentState,
-                            type: 'stepCompleted',
-                            stepIndex: i,
-                            message: `步骤 ${step.id} 完成`,
-                        });
+                    this._onExecutionEvent.fire({
+                        state: this._currentState,
+                        type: 'stepCompleted',
+                        stepIndex: i,
+                        message: `步骤 ${step.id} 完成`,
+                    });
+
+                    appendClineLog({ source: 'TaskChainExecutor', event: 'step_completed', stepIndex: i, stepId: step.id });
 
                         break;
                     } else {
@@ -199,6 +210,9 @@ export class TaskChainExecutor {
                     stepIndex: i,
                     message: `步骤 ${step.id} 失败: ${lastError}`,
                 });
+
+                appendClineLog({ source: 'TaskChainExecutor', event: 'step_failed', stepIndex: i, stepId: step.id, error: lastError });
+                updateAmaState({ lastError: `步骤 ${step.id} 失败: ${lastError}` });
 
                 if (cfg.abortOnFailure) {
                     service.addLog('error', `⛔ [Executor] 步骤 ${step.id} 失败，终止执行链`);
@@ -238,6 +252,9 @@ export class TaskChainExecutor {
                 type: 'completed',
                 message: `任务链执行完毕: ${status}`,
             });
+
+            appendClineLog({ source: 'TaskChainExecutor', event: 'execution_completed', status, completedSteps: this._currentState!.completedSteps, failedSteps: this._currentState!.failedSteps });
+            updateAmaState({ currentTaskChain: [], currentStep: '', lastError: null });
         }
 
         return this._currentState;
@@ -271,6 +288,9 @@ export class TaskChainExecutor {
             type: 'aborted',
             message: '用户请求中止执行',
         });
+
+        appendClineLog({ source: 'TaskChainExecutor', event: 'execution_aborted', stepIndex: this._currentState.currentStepIndex });
+        updateAmaState({ currentTaskChain: [], currentStep: '', lastError: '用户中止' });
     }
 
     /**

@@ -9,6 +9,7 @@ import { ClineClient } from './cline/ClineClient';
 import { TaskChainExecutor } from './executor/TaskChainExecutor';
 import { TaskChain } from './types/TaskChain';
 import { MonitorService } from './services/MonitorService';
+import { scanAndWriteProjectFiles, exportFileContent } from './services/FileLogger';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AMA extension is now active!');
@@ -202,6 +203,20 @@ export function activate(context: vscode.ExtensionContext) {
     // 4j. Clear logs
     const clearLogsDisposable = vscode.commands.registerCommand('ama.clearLogs', () => {
         clineService.clearLogs();
+    });
+
+    // 4k. Export file content (for Copilot visibility)
+    const exportFileContentDisposable = vscode.commands.registerCommand('ama.exportFileContent', async () => {
+        const filePath = await vscode.window.showInputBox({
+            prompt: '输入要导出的文件路径（相对于项目根目录）',
+            placeHolder: '例如: src/extension.ts',
+            ignoreFocusOut: true,
+        });
+        if (filePath) {
+            exportFileContent(filePath);
+            clineService.addLog('info', `📄 已导出文件内容: ${filePath} → state/file_content.json`);
+            vscode.window.showInformationMessage(`✅ 文件内容已导出到 state/file_content.json`);
+        }
     });
 
     // ============================================================
@@ -559,6 +574,7 @@ ${JSON.stringify(stateSummary, null, 2)}
         openTaskFileDisposable,
         runTaskDisposable,
         clearLogsDisposable,
+        exportFileContentDisposable,
         askDeepSeekDisposable,
         generateTaskChainDisposable,
         executeTaskChainDisposable,
@@ -595,6 +611,26 @@ ${JSON.stringify(stateSummary, null, 2)}
     // ============================================================
     monitorService.startMonitoring();
     clineService.addLog('success', '📊 实时监控已启动 (logs/ + state/)');
+
+    // ============================================================
+    // 10. Project file scanning (for Copilot visibility)
+    // ============================================================
+
+    // 10a. Initial scan on startup
+    scanAndWriteProjectFiles();
+    clineService.addLog('success', '📁 项目文件结构已扫描 → state/project_files.json');
+
+    // 10b. Refresh project file list every 10 seconds
+    const projectFilesTimer = setInterval(() => {
+        scanAndWriteProjectFiles();
+    }, 10000);
+
+    // Clean up timer on deactivation
+    context.subscriptions.push({
+        dispose: () => {
+            clearInterval(projectFilesTimer);
+        },
+    });
 }
 
 export function deactivate() {

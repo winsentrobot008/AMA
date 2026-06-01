@@ -4,6 +4,7 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ClineService } from '../services/ClineService';
+import { appendClineLog, updateAmaState } from '../services/FileLogger';
 
 /**
  * CLINE communication client.
@@ -149,16 +150,29 @@ export class ClineClient {
                 this._onConnectionChanged.fire(true);
                 service.addLog('success', `✅ [ClineClient] 成功连接到 CLINE (v${status.version || 'unknown'})`);
                 this.startHealthCheck();
+
+                // 本地日志 + 状态更新
+                appendClineLog({ source: 'ClineClient', event: 'connected', mcpUrl: this.config.mcpUrl, version: status.version });
+                updateAmaState({ mcpConnected: true });
+
                 return true;
             }
             this._isConnected = false;
             this._onConnectionChanged.fire(false);
             service.addLog('error', '❌ [ClineClient] CLINE 返回了非健康状态');
+
+            appendClineLog({ source: 'ClineClient', event: 'connect_failed', reason: 'unhealthy status' });
+            updateAmaState({ mcpConnected: false, lastError: 'CLINE 返回了非健康状态' });
+
             return false;
         } catch (err: any) {
             this._isConnected = false;
             this._onConnectionChanged.fire(false);
             service.addLog('error', `❌ [ClineClient] 连接失败: ${err.message}`);
+
+            appendClineLog({ source: 'ClineClient', event: 'connect_error', error: err.message });
+            updateAmaState({ mcpConnected: false, lastError: err.message });
+
             return false;
         }
     }
@@ -171,6 +185,9 @@ export class ClineClient {
         this._isConnected = false;
         this._onConnectionChanged.fire(false);
         ClineService.getInstance().addLog('info', '🔌 [ClineClient] 已断开与 CLINE 的连接');
+
+        appendClineLog({ source: 'ClineClient', event: 'disconnected' });
+        updateAmaState({ mcpConnected: false });
     }
 
     /**
