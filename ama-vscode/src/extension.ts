@@ -44,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 2c. Task Chain view (WebviewProvider) — the AI scheduling center panel
     const taskChainWebviewProvider = new TaskChainWebviewProvider(
-        context.extensionUri,
+        context,
         taskChainExecutor,
         clineClient
     );

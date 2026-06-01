@@ -18,7 +18,7 @@ export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
     private _lastClineStatus: ClineStatus | null = null;
 
     constructor(
-        private readonly _extensionUri: vscode.Uri,
+        private readonly context: vscode.ExtensionContext,
         private readonly _taskChainExecutor: TaskChainExecutor,
         private readonly _clineClient: ClineClient,
     ) {}
@@ -32,7 +32,7 @@ export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this._extensionUri],
+            localResourceRoots: [this.context.extensionUri],
         };
 
         webviewView.webview.html = this.getHtmlContent();
