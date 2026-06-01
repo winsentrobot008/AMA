@@ -1,8 +1,9 @@
+
 {
   "name": "ama-vscode",
   "displayName": "AMA",
   "description": "AI Messenger Agent for Maneki-AI",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "winsentrobot008",
   "license": "MIT",
   "repository": {
@@ -245,11 +246,14 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "test": "npx ts-node src/test/runTest.ts",
+    "test:watch": "npx ts-node --watch src/test/runTest.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
   }
 }

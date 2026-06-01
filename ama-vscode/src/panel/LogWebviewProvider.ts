@@ -6,7 +6,7 @@ import { ClineService, LogEntry } from '../services/ClineService';
  * Displays real-time log output from CLINE and polling status.
  */
 export class LogWebviewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = 'ama.logView';
+    public static readonly viewType = 'amaLogsView';
 
     private _view?: vscode.WebviewView;
     private _disposables: vscode.Disposable[] = [];

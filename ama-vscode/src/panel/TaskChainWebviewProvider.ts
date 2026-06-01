@@ -9,7 +9,7 @@ import { ClineClient, ClineStatus } from '../cline/ClineClient';
  * Acts as the AI scheduling center panel.
  */
 export class TaskChainWebviewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = 'ama.taskChainView';
+    public static readonly viewType = 'amaTaskChainView';
 
     private _view?: vscode.WebviewView;
     private _disposables: vscode.Disposable[] = [];
