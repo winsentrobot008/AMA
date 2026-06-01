@@ -8,6 +8,7 @@ import { DeepSeekClient } from './llm/DeepSeekClient';
 import { ClineClient } from './cline/ClineClient';
 import { TaskChainExecutor } from './executor/TaskChainExecutor';
 import { TaskChain } from './types/TaskChain';
+import { MonitorService } from './services/MonitorService';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AMA extension is now active!');
@@ -20,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     const deepSeekClient = DeepSeekClient.getInstance();
     const clineClient = ClineClient.getInstance();
     const taskChainExecutor = TaskChainExecutor.getInstance();
+    const monitorService = MonitorService.getInstance();
 
     // Load config
     configManager.getConfig();
@@ -587,17 +589,27 @@ ${JSON.stringify(stateSummary, null, 2)}
     } else {
         clineService.addLog('info', '🤖 DeepSeek API 未配置。如需 LLM 功能，请在 .env 中设置 DEEPSEEK_API_KEY');
     }
+
+    // ============================================================
+    // 9. Start real-time monitoring
+    // ============================================================
+    monitorService.startMonitoring();
+    clineService.addLog('success', '📊 实时监控已启动 (logs/ + state/)');
 }
 
 export function deactivate() {
     const clineService = ClineService.getInstance();
     const clineClient = ClineClient.getInstance();
+    const monitorService = MonitorService.getInstance();
 
     if (clineService.isPolling) {
         clineService.stopPolling();
     }
 
     clineClient.disconnect();
+
+    // Stop monitoring
+    monitorService.stopMonitoring();
 
     console.log('AMA extension is now deactivated!');
 }
